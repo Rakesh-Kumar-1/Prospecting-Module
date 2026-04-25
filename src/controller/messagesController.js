@@ -1,4 +1,4 @@
-import * as messageService from '../src/service/messagesService.js';
+import * as messageService from '../service/messagesService.js';
 import {CreateError}  from '../middleware/createError.js';
 
 export const sendBulk = async (req,res,next) => {

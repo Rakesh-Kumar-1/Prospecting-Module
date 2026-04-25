@@ -1,14 +1,17 @@
 import express from 'express';
-import routes from './router/messagesRoutes.js';
 import dotenv from 'dotenv';
-import errorHandler from './middleware/errorHandler.js';
+import errorHandler from './src/middleware/errorHandler.js';
+import masterRoutes from './src/routes/master.routes.js';
+import messageRoutes from './src/routes/messagesRoutes.js';
+
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
 
-app.use('/messages',routes);
+app.use('/messages', messageRoutes);
+app.use('/masters', masterRoutes);
 app.use(errorHandler);
 
 
