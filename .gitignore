@@ -1,0 +1,12 @@
+# Node dependencies
+/node_modules/
+/**/node_modules/
+node_modules
+# Environment files - ignore all env variants but keep example files in repo
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+config/
