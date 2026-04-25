@@ -1,4 +1,4 @@
-import pool from "../config/connectionDb.js";
+import pool from "../../config/connectionDb.js";
 
 const createTableQuery = ` 
   CREATE TABLE message_queue (

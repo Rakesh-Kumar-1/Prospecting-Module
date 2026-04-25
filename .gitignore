@@ -9,4 +9,4 @@ node_modules
 
 # Logs
 *.log
-config/
+src/config/

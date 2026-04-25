@@ -1,4 +1,4 @@
-import pool from "../config/connectionDb.js";
+import pool from "../../config/connectionDb.js";
 
 const createTableQuery = ` 
   CREATE TABLE IF NOT EXISTS message_templates (
