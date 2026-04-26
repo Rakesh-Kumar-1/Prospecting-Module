@@ -9,4 +9,4 @@ node_modules
 
 # Logs
 *.log
-src/config/
+setup_db.js
