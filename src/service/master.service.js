@@ -1,4 +1,4 @@
-import db from '../db/connection.js';
+import db from '../config/connection.js';
 
 const DEFAULT_LANGUAGE_ID = 'EN';
 
