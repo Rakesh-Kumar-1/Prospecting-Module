@@ -1,4 +1,4 @@
-import db from '../../config/connectionDb.js';
+import db from '../config/connection.js';
 
 export const sendBulkMessages = async ({templateCode,channel,prospectIds,overrideVars = {},scheduledAt,userId}) =>{
     try{
