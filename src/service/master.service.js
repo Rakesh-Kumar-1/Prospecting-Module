@@ -34,11 +34,11 @@ export const getStages = async (languageId) => {
          WHEN sm.stage_key IN ('CONVERTED', 'DROPPED') THEN 1
          ELSE 0
        END AS is_terminal
-     FROM stage_master sm
-     INNER JOIN stage_translations en
+     FROM mt_stages sm
+     INNER JOIN mt_stages_translation en
        ON en.stage_code = sm.stage_code
       AND en.lang_id = ?
-     LEFT JOIN stage_translations t
+     LEFT JOIN mt_stages_translation t
        ON t.stage_code = sm.stage_code
       AND t.lang_id = ?
      WHERE sm.is_active = 1
@@ -56,7 +56,7 @@ export const getSources = async () => {
        source_key,
        icon,
        sort_order
-     FROM source_master
+     FROM mt_sources
      WHERE is_active = 1
      ORDER BY sort_order, source_id`
   );
@@ -71,7 +71,7 @@ export const getLanguages = async () => {
        language_name,
        native_name,
        direction
-     FROM language_master
+     FROM mt_languages
      WHERE is_active = 1
      ORDER BY sort_order`
   );
