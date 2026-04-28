@@ -1,7 +1,7 @@
 export const bulkInsertProspects = async (prospects, userId, langId = 'EN', db) => {
     // Determine the starting stage
     const [firstStageRows] = await db.query(
-      'SELECT stage_code FROM mt_stages WHERE language_id = ? AND sequence = 1 LIMIT 1',
+      'SELECT stage_code FROM md_stages WHERE language_id = ? AND sequence = 1 LIMIT 1',
       [langId]
     );
     // fallback to EN if not found, or use 1
@@ -10,7 +10,7 @@ export const bulkInsertProspects = async (prospects, userId, langId = 'EN', db) 
         stageCode = firstStageRows[0].stage_code;
     } else {
         // Find stage sequence 1 without language restriction
-        const [anyFirst] = await db.query('SELECT stage_code FROM mt_stages WHERE sequence = 1 LIMIT 1');
+        const [anyFirst] = await db.query('SELECT stage_code FROM md_stages WHERE sequence = 1 LIMIT 1');
         if (anyFirst.length > 0) stageCode = anyFirst[0].stage_code;
     }
   
@@ -95,7 +95,7 @@ export const moveStage = async ({ prospectId, newStage, reasonId, userId }, db) 
   
       // Check if terminal stage requires reason
       const [stageMeta] = await connection.query(
-        'SELECT requires_reason FROM mt_stages WHERE stage_code=? AND language_id=? LIMIT 1',
+        'SELECT requires_reason FROM md_stages WHERE stage_code=? AND language_id=? LIMIT 1',
         [newStage, 'EN']
       );
       if (stageMeta.length > 0 && stageMeta[0].requires_reason && !reasonId) {
