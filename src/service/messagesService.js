@@ -3,12 +3,8 @@ import { CreateError } from '../middleware/createError.js';
 
 export const enqueueBulk = async ({template_id, scheduled_at, messages,userId }) => {
   try{
-  // 🔹 1. Fetch template once
-  const [templates] = await db.query(
-    `SELECT * FROM md_message_templates 
-     WHERE id = ?`,
-    [template_id]
-  );
+  // Fetch template once
+  const [templates] = await db.query(`SELECT * FROM md_message_templates WHERE id = ?`,[template_id]);
 
   if (templates.length === 0) {
     throw CreateError(404, "Template not found");
@@ -16,13 +12,13 @@ export const enqueueBulk = async ({template_id, scheduled_at, messages,userId })
 
   const template = templates[0];
 
-  // 🔹 2. Extract variables once
+  // Extract variables once
   const matches = template.body.match(/{{(.*?)}}/g) || [];
   const requiredVars = [...new Set(
     matches.map(v => v.replace(/[{}]/g, '').trim())
   )];
 
-  // 🔹 3. Prepare bulk insert
+  // Prepare bulk insert
   const values = [];
 
   for (let msg of messages) {
@@ -33,7 +29,7 @@ export const enqueueBulk = async ({template_id, scheduled_at, messages,userId })
       throw CreateError(400, "Each message must have 'to', 'payload', and 'prospect_id'");
     }
 
-    // 🔹 Validate payload
+    // Validate payload
     for (let v of requiredVars) {
       if (!(v in payload)) {
         throw CreateError(400, `Missing variable: ${v}`);
@@ -51,7 +47,7 @@ export const enqueueBulk = async ({template_id, scheduled_at, messages,userId })
     ]);
   }
 
-  // 🔹 4. Bulk insert
+  // Bulk insert
   const query = `
     INSERT INTO td_messages_queue 
     (channel, template_id, prospect_id, to_address, payload, status, scheduled_at)
@@ -83,35 +79,31 @@ export const enqueueBulk = async ({template_id, scheduled_at, messages,userId })
   ]
 }
 */
+
 export const enqueueMessage = async ({ template_id, to, payload, scheduled_at, prospect_id,userId }) => {
   try {
-    // 🔹 1. Fetch template
-    const [templates] = await db.query(
-      `SELECT * FROM md_message_templates 
-     WHERE id = ?`,
-      [template_id]
-    );
+    const [templates] = await db.query(`SELECT * FROM md_message_templates WHERE id = ?`,[template_id]);
     if (templates.length === 0) {
       throw CreateError(404, "Template not found ");
     }
 
     const template = templates[0];
     console.log(template);
-    // 🔹 2. Extract variables from template body
+    //  Extract variables from template body
     const matches = template.body.match(/{{(.*?)}}/g) || [];
 
     const requiredVars = [...new Set(
       matches.map(v => v.replace(/[{}]/g, '').trim())
     )];
     console.log(requiredVars);
-    // 🔹 3. Validate payload
+    //  Validate payload
     for (let v of requiredVars) {
       if (!(v in payload)) {
         throw CreateError(400, `Missing variable: ${v}`);
       }
     }
 
-    // 🔹 4. Insert into queue
+    //  Insert into queue
     const query = ` INSERT INTO td_messages_queue (
       channel,
       template_id,
@@ -152,33 +144,33 @@ export const enqueueMessage = async ({ template_id, to, payload, scheduled_at, p
   "userId": 101
 }
 */
+
 export const queue = async ({status,channel,prospect_id,limit,offset}) => {
   let baseQuery = `FROM td_messages_queue WHERE 1=1`;
   let values = [];
-
-  // 🔹 Status filter
+  // Status filter
   if (status && status.length > 0) {
     baseQuery += ` AND status IN (${status.map(() => '?').join(',')})`;
     values.push(...status);
   }
 
-  // 🔹 Channel filter
+  // Channel filter
   if (channel && channel.length > 0) {
     baseQuery += ` AND channel IN (${channel.map(() => '?').join(',')})`;
     values.push(...channel);
   }
 
-  // 🔹 prospect_id filter
+  // prospect_id filter
   if (prospect_id && prospect_id.length > 0 ) {
     baseQuery += ` AND prospect_id IN (${prospect_id.map(() => '?').join(',')})`;
     values.push(...prospect_id);
   }
 
-  // 🔹 Count query
+  // Count query
   const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
   const [[countResult]] = await db.query(countQuery, values);
 
-  // 🔹 Data query
+  // Data query
   const dataQuery = `
     SELECT 
       id,
@@ -200,6 +192,7 @@ export const queue = async ({status,channel,prospect_id,limit,offset}) => {
 
   return {rows};
 };
+
 export const postTemplates = async ({ templateCode, channel, language_id, subject, body }) => {
   try {
 
@@ -285,7 +278,6 @@ export const getTemplates = async ({ templateCode, channel, language_id, limit, 
     let baseQuery = `FROM md_message_templates WHERE 1=1`;
   let values = [];
 
-  // 🔹 Filters
   if (templateCode) {
     baseQuery += ` AND template_code = ?`;
     values.push(templateCode);
@@ -301,11 +293,11 @@ export const getTemplates = async ({ templateCode, channel, language_id, limit, 
     values.push(language_id);
   }
 
-  // 🔹 Total count query
+  // Total count query
   const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
   const [[countResult]] = await db.query(countQuery, values);
 
-  // 🔹 Data query with pagination
+  // Data query with pagination
   const dataQuery = `SELECT * ${baseQuery}ORDER BY created_at DESC LIMIT ? OFFSET ?`;
   const [rows] = await db.query(dataQuery, [...values, limit, offset]);
   return {

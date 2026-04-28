@@ -14,7 +14,7 @@ export const sendBulk = async (req, res, next) => {
       return next(CreateError(400, "Missing required fileds"));
     }
 
-    // 🔹 Validate each message
+    // Validate each message
     for (let msg of messages) {
       if (!msg.to || !msg.prospect_id) {
         return next(CreateError(400, "Each message must have 'to' and 'prospect_id'"));
@@ -55,7 +55,7 @@ export const sendSingle = async (req, res, next) => {
   try {
     const { template_id, to, prospect_id, payload, scheduled_at,userId } = req.body;
 
-    // 🔴 Basic validation
+    // Basic validation
     if (!template_id || !to || !prospect_id || !userId) {
       return next(CreateError(400, 'Missing required fields'))
     }
@@ -64,7 +64,7 @@ export const sendSingle = async (req, res, next) => {
       return next(CreateError(400, 'Payload must be a valid JSON object'))
     }
 
-    // 🔹 Call service
+    // Call service
     const result = await messageService.enqueueMessage({ template_id, to, prospect_id, payload, scheduled_at, userId });
     return res.status(201).json({ success: true, message: "Message queued successfully", data: result });
 
@@ -91,7 +91,7 @@ export const queue = async (req, res, next) => {
     limit = parseInt(limit) || 10;
 
     const offset = (page - 1) * limit;
-    // 🔹 Default status
+    // Default status
     if (status) {
       if (typeof status === "string") {
         status = status.split(",");
@@ -100,21 +100,21 @@ export const queue = async (req, res, next) => {
       // default allow all status if not provided
       status = ['PENDING', 'FAILED'];
     }
-    // 🔹 Channel normalize
+    // Channel normalize
     if (channel) {
       if (typeof channel === "string") {
         channel = channel.split(",");
       }
     }
 
-    // 🔹 prospect_id normalize
+    // prospect_id normalize
     if (prospect_id) {
       if(typeof prospect_id === "string") {
         prospect_id = prospect_id.split(",").map(id => parseInt(id));
       }
     }
 
-    // 🔹 Validation
+    // Validation
     const allowedStatus = ['PENDING', 'PROCESSING', 'SENT', 'FAILED', 'CANCELLED'];
     for (let s of status) {
       if (!allowedStatus.includes(s)) {
@@ -131,7 +131,7 @@ export const queue = async (req, res, next) => {
       }
     }
 
-    // 🔹 Call service
+    // Call service
     const result = await messageService.queue({ status, channel, prospect_id, limit, offset });
 
     return res.status(200).json({
@@ -222,7 +222,7 @@ export const getTemplates = async (req, res, next) => {
     const limit = 10; // Default limit
     const offset = (page - 1) * limit;
 
-    // 🔹 Handle multiple channels
+    // Handle multiple channels
 
     if (channel) {
       if (typeof channel === "string") {
@@ -230,7 +230,7 @@ export const getTemplates = async (req, res, next) => {
       }
     }
 
-    // 🔹 Validation
+    // Validation
     const allowedChannels = ['EMAIL', 'SMS', 'WHATSAPP'];
     if (channel) {
       for (let c of channel) {
@@ -240,7 +240,7 @@ export const getTemplates = async (req, res, next) => {
       }
     }
 
-    // 🔹 Call service
+    // Call service
     const result = await messageService.getTemplates({ templateCode, channel, language_id, limit, offset });
     return res.json({ success: true, count: result.total, data: result.templates });
 

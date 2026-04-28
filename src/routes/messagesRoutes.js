@@ -14,5 +14,4 @@ router.get('/templates', controller.getTemplates); // List templates
 
 
 
-
 export default router;

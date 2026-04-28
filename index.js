@@ -4,6 +4,7 @@ import prospectRoutes from './src/routes/prospectRoutes.js';
 import masterRoutes from './src/routes/master.routes.js';
 import dotenv from 'dotenv';
 import errorHandler from "./src/middleware/errorHandler.js";
+
 dotenv.config();
 
 const app = express();

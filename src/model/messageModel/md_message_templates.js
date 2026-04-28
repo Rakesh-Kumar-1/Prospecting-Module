@@ -1,4 +1,4 @@
-import db from '../../config/db.js';
+import db from "../../config/db.js";
 
 const createTableQuery = `
 CREATE TABLE IF NOT EXISTS md_message_templates (
@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS md_message_templates (
   UNIQUE KEY uk_template (template_code, language_id, channel)
 );
 `;
+
 export async function createTable() {
   try {
     await db.execute(createTableQuery);
@@ -21,4 +22,4 @@ export async function createTable() {
   } catch (err) {
     console.error('Error creating table', err);
   }
-}
+};

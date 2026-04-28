@@ -1,4 +1,4 @@
-import pool from "../../config/connectionDb.js";
+import pool from "../../config/db.js";
 
 const createTableQuery = `
 CREATE TABLE IF NOT EXISTS message_logs (
@@ -25,11 +25,11 @@ CREATE TABLE IF NOT EXISTS message_logs (
 );
 `;
 
-// export async function createTable() {
-//   try {
-//     await pool.query(createTableQuery);
-//     console.log('Table created successfully');
-//   } catch (err) {
-//     console.error('Error creating table', err);
-//   }
-// }
+export async function createTable() {
+  try {
+    await pool.query(createTableQuery);
+    console.log('Table created successfully');
+  } catch (err) {
+    console.error('Error creating table', err);
+  }
+}
