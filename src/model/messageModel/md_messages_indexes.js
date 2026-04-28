@@ -1,7 +1,7 @@
 import db from "../../config/db.js";
 
 const createTableQuery = `
-  CREATE INDEX idx_message_logs_queue ON message_logs(queue_id)
+  CREATE INDEX idx_message_logs_queue ON td_messages_logs(queue_id)
     
   CREATE INDEX idx_message_queue_status ON td_messages_queue(status)
     

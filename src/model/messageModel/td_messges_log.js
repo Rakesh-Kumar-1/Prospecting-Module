@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS message_logs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_queue FOREIGN KEY (queue_id)
-    REFERENCES message_queue(id)
+    REFERENCES td_messages_queue(id)
     ON DELETE CASCADE
 );
 `;
