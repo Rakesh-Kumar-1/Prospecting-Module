@@ -64,7 +64,8 @@ const isAuthError = (err) =>
   err.message.includes('535') ||
   err.message.includes('Authentication') ||
   err.message.includes('Invalid login') ||
-  err.message.includes('ECONNREFUSED');
+  err.message.includes('ECONNREFUSED') ||
+  err.message.includes('PERMANENT')
 
 // ─────────────────────────────────────────
 // Main queue processor
