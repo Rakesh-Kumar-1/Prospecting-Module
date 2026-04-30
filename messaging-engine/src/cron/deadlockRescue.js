@@ -17,9 +17,7 @@ const runDeadlockRescue = async () => {
     );
 
     if (result.affectedRows > 0) {
-      logger.warn(
-        `[CRON] Rescued ${result.affectedRows} stuck messages`
-      );
+      logger.warn(`[CRON] Rescued ${result.affectedRows} stuck messages`);
     }
   } catch (err) {
     logger.error(`[CRON] Deadlock rescue failed: ${err.message}`);
@@ -27,8 +25,6 @@ const runDeadlockRescue = async () => {
 };
 
 cron.schedule('* * * * *', runDeadlockRescue);
-logger.info(
-  '[CRON] 🕐 Deadlock rescue started — runs every 60 seconds'
-);
+logger.info('[CRON] 🕐 Deadlock rescue started — runs every 60 seconds');
 
 module.exports = { runDeadlockRescue };

@@ -165,7 +165,7 @@ const enqueueBulkToProspects = async ({
   }
 
   logger.info(
-    `[QUEUE] Bulk prospect enqueue — queued: ${rows.length} skipped: ${skipped}`
+    `[QUEUE] Bulk prospect enqueue - queued: ${rows.length} skipped: ${skipped}`
   );
   return { queued: rows.length, skipped };
 };

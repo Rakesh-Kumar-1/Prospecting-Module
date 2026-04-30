@@ -32,7 +32,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(config.server.port, () => {
-  logger.info(` Server running on port ${config.server.port}`);
+  logger.info(`Server running on port ${config.server.port}`);
 });
 
 module.exports = app;
