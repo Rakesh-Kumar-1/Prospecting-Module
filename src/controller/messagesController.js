@@ -4,86 +4,97 @@ import { CreateError } from '../middleware/createError.js';
 
 export const sendBulk = async (req, res, next) => {
   try {
-    const { template_id, scheduled_at, messages,userId } = req.body;
-
+    const {template_id,userId,messages} = req.body;
     if (!template_id || !userId) {
-      return next(CreateError(400, "Missing required fields"));
+      return next(CreateError(400, 'Missing required fields'));
     }
 
+    // Messages validation
     if (!Array.isArray(messages) || messages.length === 0) {
-      return next(CreateError(400, "Missing required fileds"));
+      return next(CreateError(400, 'Messages must be a non-empty array'));
     }
 
-    // Validate each message
-    for (let msg of messages) {
-      if (!msg.to || !msg.prospect_id) {
-        return next(CreateError(400, "Each message must have 'to' and 'prospect_id'"));
+    // Validate each message item
+    for (const item of messages) {
+      if (!item.prospect_id) {
+        return next(CreateError(400,'prospect_id is required for each message'));
       }
 
-      if (!msg.payload || typeof msg.payload !== "object") {
-        return next(CreateError(400, "Each message must have valid payload"));
+      if (item.payload && typeof item.payload !== 'object') {
+        return next(CreateError(400,'payload must be JSON object'));
       }
     }
 
-    const result = await messageService.enqueueBulk({ template_id, scheduled_at, messages,userId });
-    return res.status(201).json({ success: true, message: "Bulk messages queued" });
+    const result = await messageService.enqueueBulkMessages({template_id,userId,messages});
+    return res.status(201).json({
+      success: true,
+      message: 'Bulk messages queued successfully',
+      data: result
+    });
+
+  } catch (error) {
+    return next(error);
+  }
+};
+/* 
+{
+  "template_id": 2,
+  "userId": 10,
+  "messages": [
+    {
+      "prospect_id": 101,
+      "payload": {
+        "meeting_date": "2026-05-02",
+        "meeting_link": "https://meet.google.com/a1"
+      }
+    },
+    {
+      "prospect_id": 102,
+      "payload": {
+        "meeting_date": "2026-05-03",
+        "meeting_link": "https://meet.google.com/b2"
+      }
+    },
+    {
+      "prospect_id": 103
+    }
+  ]
+}
+*/
+
+export const sendSingle = async (req, res, next) => {
+  try {
+    const { template_id, prospect_id, payload, userId } = req.body;
+
+    if (!template_id || !prospect_id || !userId) {
+      return next(CreateError(400, 'Missing required fields'))
+    }
+
+    // Payload Optional validation
+    if (payload && typeof payload !== "object") {
+      return next(CreateError(400, 'Payload must be a valid JSON object'))
+    }
+
+    // Call service
+    const result = await messageService.enqueueMessage({ template_id, prospect_id, payload, userId });
+    return res.status(201).json({ success: true, message: "Message queued successfully", data: result });
+
   } catch (err) {
     return next(err);
   }
 };
 /* 
 {
-  "template_id": 39,
-  "scheduled_at": "2026-04-27 12:00:00",
-  "messages": [
-    {
-      "prospect_id": 101,
-      "to": "user1@example.com",
-      "payload": { "name": "Rakesh", "order_id": "ORD1" }
-    },
-    {
-      "prospect_id": 102,
-      "to": "user2@example.com",
-      "payload": { "name": "Amit", "order_id": "ORD2" }
-    }
-  ],
-  "userId": 101
-}
-*/
-
-export const sendSingle = async (req, res, next) => {
-  try {
-    const { template_id, to, prospect_id, payload, scheduled_at,userId } = req.body;
-
-    // Basic validation
-    if (!template_id || !to || !prospect_id || !userId) {
-      return next(CreateError(400, 'Missing required fields'))
-    }
-
-    if (!payload || typeof payload !== "object") {
-      return next(CreateError(400, 'Payload must be a valid JSON object'))
-    }
-
-    // Call service
-    const result = await messageService.enqueueMessage({ template_id, to, prospect_id, payload, scheduled_at, userId });
-    return res.status(201).json({ success: true, message: "Message queued successfully", data: result });
-
-  } catch (err) {
-    return next(CreateError(500, 'Internal Server Error'));
-  }
-};
-/*
-{
-  "template_id" : 39,
-  "to": "user@example.com",
+  "template_id": 2,
+  "prospect_id": 101,
+  "userId": 10,
   "payload": {
-    "name": "Rakesh",
-    "order_id": "ORD123"
-  },
-  "scheduled_at": "2026-04-27T12:00:00Z",
-  "userId": 101
+    "meeting_date": "2026-05-02",
+    "meeting_link": "https://meet.google.com/abc"
+  }
 }
 */
+
 export const queue = async (req, res, next) => {
   try {
     let { status, channel, prospect_id, page, limit } = req.query;
@@ -109,7 +120,7 @@ export const queue = async (req, res, next) => {
 
     // prospect_id normalize
     if (prospect_id) {
-      if(typeof prospect_id === "string") {
+      if (typeof prospect_id === "string") {
         prospect_id = prospect_id.split(",").map(id => parseInt(id));
       }
     }
@@ -157,6 +168,7 @@ export const queue = async (req, res, next) => {
   "page": "number (optional, default=1)",
 }
  */
+
 export const postTemplates = async (req, res, next) => {
   try {
     const { templateCode, channel, language_id, subject, body } = req.body;
@@ -185,6 +197,7 @@ export const postTemplates = async (req, res, next) => {
   "userId": 101
 }
 */
+
 export const updateTemplates = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -196,7 +209,7 @@ export const updateTemplates = async (req, res, next) => {
     if (!result) {
       return next(CreateError(404, 'Template not found'));
     }
-    return res.status(200).json({success: true,message: "Template updated successfully"});
+    return res.status(200).json({ success: true, message: "Template updated successfully" });
   }
   catch (error) {
     next(CreateError(500, 'Internal Server Error'));
@@ -235,7 +248,8 @@ export const getTemplates = async (req, res, next) => {
     if (channel) {
       for (let c of channel) {
         if (!allowedChannels.includes(c)) {
-          return next(CreateError(400, `Invalid channel: ${c}`));
+          // return next(CreateError(400, `Invalid channel: ${c}`));
+          return res.status(400).json({`Invalid channel: ${c}`})
         }
       }
     }
@@ -256,5 +270,5 @@ API for get templates with filters:
 export const healthCheck = async (req, res,) => {
   const [rows] = await db.query("SELECT * FROM td_messages_queue");
   console.log(rows);
-  return res.json({ success: true, message: "API is healthy" ,data: rows});
+  return res.json({ success: true, message: "API is healthy", data: rows });
 }
