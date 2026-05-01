@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS transfer_logs (
     to_user         BIGINT   NOT NULL,  
     transferred_at  DATETIME DEFAULT CURRENT_TIMESTAMP,  
     transferred_by  BIGINT,
-    notes           TEXT,  
     INDEX idx_prospect (prospect_id)  
 );
 `;

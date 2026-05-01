@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS stage_logs (
     moved_by     BIGINT       NOT NULL,  
     moved_at     DATETIME     DEFAULT CURRENT_TIMESTAMP,  
     reason_id    INT          NULL,  
-    notes        TEXT         NULL,  
     INDEX idx_prospect (prospect_id)  
 );
 `;
