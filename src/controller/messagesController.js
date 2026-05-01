@@ -5,8 +5,8 @@ import { CreateError } from '../middleware/createError.js';
 export const sendBulk = async (req, res, next) => {
   try {
     const {template_id,messages} = req.body;
-    const userId = req.authentication['userid'] || "103";     // ----> Authentication part
-    if (!template_id ) {
+    const userId = req.authentication['userid']; 
+    if (!template_id || !userId) {
       return next(CreateError(400, 'Missing required fields'));
     }
 
@@ -18,15 +18,15 @@ export const sendBulk = async (req, res, next) => {
     // Validate each message item
     for (const item of messages) {
       if (!item.prospect_id) {
-        return next(CreateError(400,'prospect_id is required for each message'));
+        return next(CreateError(400, 'prospect_id is required for each message'));
       }
 
       if (item.payload && typeof item.payload !== 'object') {
-        return next(CreateError(400,'payload must be JSON object'));
+        return next(CreateError(400, 'payload must be JSON object'));
       }
     }
 
-    const result = await messageService.enqueueBulkMessages({template_id,userId,messages});
+    const result = await messageService.enqueueBulkMessages({ template_id, userId, messages });
     return res.status(201).json({
       success: true,
       message: 'Bulk messages queued successfully',
@@ -62,7 +62,7 @@ export const sendBulk = async (req, res, next) => {
 export const sendSingle = async (req, res, next) => {
   try {
     const { template_id, prospect_id, payload } = req.body;
-    const userId = req.authentication['userid'] || "103";     // ----> Authentication part
+    const userId = req.authentication['userid'];     // ----> Authentication part
 
     if (!template_id || !prospect_id || !userId) {
       return next(CreateError(400, 'Missing required fields'))
@@ -85,7 +85,6 @@ export const sendSingle = async (req, res, next) => {
 {
   "template_id": 2,
   "prospect_id": 101,
-  "userId": 10,
   "payload": {
     "meeting_date": "2026-05-02",
     "meeting_link": "https://meet.google.com/abc"
@@ -95,19 +94,11 @@ export const sendSingle = async (req, res, next) => {
 
 export const queue = async (req, res, next) => {
   try {
-    let { status, channel, prospect_id, page, limit } = req.query;
+    let { channel, prospect_id, page, limit } = req.query;
     page = parseInt(page) || 1;
     limit = parseInt(limit) || 10;
 
     const offset = (page - 1) * limit;
-    // Default status
-    if (status) {
-      if (typeof status === "string") {
-        status = status.split(",");
-      }
-    } else {
-      status = ['PENDING', 'FAILED'];
-    }
     // Channel normalize
     if (channel) {
       if (typeof channel === "string") {
@@ -118,16 +109,10 @@ export const queue = async (req, res, next) => {
     // prospect_id normalize
     if (prospect_id) {
       if (typeof prospect_id === "string") {
-        prospect_id = prospect_id.split(",").map(id => parseInt(id));
+        prospect_id = prospect_id.split(",");
       }
-    }
 
-    // Validation
-    const allowedStatus = ['PENDING', 'PROCESSING', 'SENT', 'FAILED', 'CANCELLED'];
-    for (let s of status) {
-      if (!allowedStatus.includes(s)) {
-        return next(CreateError(400, `Invalid status: ${s}`));
-      }
+      prospect_id = prospect_id.map(id => Number(id));
     }
 
     const allowedChannels = ['EMAIL', 'SMS', 'WHATSAPP'];
@@ -140,7 +125,7 @@ export const queue = async (req, res, next) => {
     }
 
     // Call service
-    const result = await messageService.queue({ status, channel, prospect_id, limit, offset });
+    const result = await messageService.queue({ channel, prospect_id, limit, offset });
 
     return res.status(200).json({
       success: true,
@@ -156,15 +141,8 @@ export const queue = async (req, res, next) => {
   }
 }
 /*
-{
-  "templateCode": "string (optional)",
-  "language_id": "string (optional)",
-  "status": "string | comma-separated values (optional)",
-  "channel": "string | comma-separated values (optional)",
-  "prospect_id": "number (optional)",
-  "page": "number (optional, default=1)",
-}
- */
+/queue?channel=EMAIL&channel=SMS&prospect_id=123&page=2&limit=10
+*/
 
 export const postTemplates = async (req, res, next) => {
   try {
@@ -201,7 +179,7 @@ export const updateTemplates = async (req, res, next) => {
     if (!id || !data) {
       return next(CreateError(400, 'Missing required fields'))
     }
-    const result = await messageService.updateTemplates(id, data);
+    const result = await messageService.updateTemplates({id, data});
     if (!result) {
       return next(CreateError(404, 'Template not found'));
     }
@@ -222,9 +200,9 @@ id is passed as path params( id ->> Primary key of template table)
 
 export const getTemplates = async (req, res, next) => {
   try {
-    let { templateCode, channel, language_id, page } = req.query;
+    let { templateCode, channel, language_id, page,limit } = req.query;
     page = parseInt(page) || 1;
-    const limit = 10; // Default limit
+    limit = parseInt(limit) || 30;
     const offset = (page - 1) * limit;
 
     // Handle multiple channels
@@ -255,7 +233,9 @@ export const getTemplates = async (req, res, next) => {
 }
 /*
 API for get templates with filters:
-/templates?templateCode=FOLLOW%20UP&channel=EMAIL&channel=SMS&channel=WHATSAPP&language_id=en
+/templates?templateCode=FOLLOW%20UP&channel=EMAIL&channel=SMS&channel=WHATSAPP&language_id=EN&page=2&limit=10
+/templates?templateCode=FOLLOW%20UP&channel=EMAIL,SMS,WHATSAPP&language_id=EN&page=2&limit=10
+
 */
 
 export const healthCheck = async (req, res,) => {

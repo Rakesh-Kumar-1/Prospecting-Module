@@ -27,7 +27,7 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
           company_name,
           email,
           phone
-        FROM td_prospects
+        FROM md_prospects
         WHERE id = ?
         `,
         [item.prospect_id]
@@ -138,7 +138,7 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
         p.company_name,
         p.email,
         p.phone
-      FROM md_message_templates t INNER JOIN td_prospects p ON p.id = ?
+      FROM md_message_templates t INNER JOIN md_prospects p ON p.id = ?
       WHERE t.id = ?
       `,[prospect_id, template_id]);
 
@@ -233,14 +233,9 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
   }
 };
 
-export const queue = async ({status,channel,prospect_id,limit,offset}) => {
+export const queue = async ({channel, prospect_id, limit, offset}) => {
   let baseQuery = `FROM td_messages_queue WHERE 1=1`;
   let values = [];
-  // Status filter
-  if (status && status.length > 0) {
-    baseQuery += ` AND status IN (${status.map(() => '?').join(',')})`;
-    values.push(...status);
-  }
 
   // Channel filter
   if (channel && channel.length > 0) {
@@ -277,8 +272,7 @@ export const queue = async ({status,channel,prospect_id,limit,offset}) => {
   `;
 
   const [rows] = await db.query(dataQuery, [...values, limit, offset]);
-
-  return {rows};
+  return {rows,total: countResult.total};
 };
 
 export const postTemplates = async ({ templateCode, channel, language_id, subject, body }) => {
@@ -313,7 +307,7 @@ export const postTemplates = async ({ templateCode, channel, language_id, subjec
   }
 };
 
-export const updateTemplates = async (id, data) => {
+export const updateTemplates = async ({id, data}) => {
   try {
     const { subject, body } = data;
     const [rows] = await db.query("SELECT id FROM md_message_templates WHERE id = ?", [id]);
