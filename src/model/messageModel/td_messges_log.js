@@ -5,12 +5,10 @@ CREATE TABLE IF NOT EXISTS message_logs (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   queue_id BIGINT NOT NULL,
   channel ENUM('EMAIL', 'SMS', 'WHATSAPP') NOT NULL,
-
   to_address VARCHAR(500) NOT NULL,
   provider VARCHAR(100), -- sendgrid, twilio
   provider_msg_id VARCHAR(255),
-
-   status ENUM('SUCCESS','FAILED') NOT NULL,
+  status ENUM('SUCCESS','FAILED') NOT NULL,
   response_body TEXT,
   error_message TEXT,
   delivered_at TIMESTAMP NULL,
