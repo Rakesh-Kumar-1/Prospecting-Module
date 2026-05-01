@@ -4,8 +4,9 @@ import { CreateError } from '../middleware/createError.js';
 
 export const sendBulk = async (req, res, next) => {
   try {
-    const {template_id,userId,messages} = req.body;
-    if (!template_id || !userId) {
+    const {template_id,messages} = req.body;
+    const userId = req.authentication['userid'] || "103";     // ----> Authentication part
+    if (!template_id ) {
       return next(CreateError(400, 'Missing required fields'));
     }
 
@@ -39,7 +40,6 @@ export const sendBulk = async (req, res, next) => {
 /* 
 {
   "template_id": 2,
-  "userId": 10,
   "messages": [
     {
       "prospect_id": 101,
@@ -54,9 +54,6 @@ export const sendBulk = async (req, res, next) => {
         "meeting_date": "2026-05-03",
         "meeting_link": "https://meet.google.com/b2"
       }
-    },
-    {
-      "prospect_id": 103
     }
   ]
 }
@@ -64,7 +61,8 @@ export const sendBulk = async (req, res, next) => {
 
 export const sendSingle = async (req, res, next) => {
   try {
-    const { template_id, prospect_id, payload, userId } = req.body;
+    const { template_id, prospect_id, payload } = req.body;
+    const userId = req.authentication['userid'] || "103";     // ----> Authentication part
 
     if (!template_id || !prospect_id || !userId) {
       return next(CreateError(400, 'Missing required fields'))
@@ -108,7 +106,6 @@ export const queue = async (req, res, next) => {
         status = status.split(",");
       }
     } else {
-      // default allow all status if not provided
       status = ['PENDING', 'FAILED'];
     }
     // Channel normalize
@@ -193,8 +190,7 @@ export const postTemplates = async (req, res, next) => {
   "language_id": "en",
   "subject": "Order Confirmation",
   "body": "Hello {{name}}, your order {{order_id}} is confirmed.",
-  "isActive": true,
-  "userId": 101
+  "isActive": true
 }
 */
 
@@ -215,18 +211,14 @@ export const updateTemplates = async (req, res, next) => {
     next(CreateError(500, 'Internal Server Error'));
   }
 }
-/*
+/* 
 API for update template:
+id is passed as path params( id ->> Primary key of template table)
 {
-  "templateCode": "FOLLOW UP",
-  "channel": "EMAIL",
-  "language_id": "en",
   "subject": "Updated Order Confirmation",
-  "body": "Hello {{name}}, your order {{order_id}} has been successfully confirmed.",
-  "isActive": true,
-  "userId": 101
+  "body": "Hello {{name}}, your order {{order_id}} confirmed."
 }
-*/
+  */
 
 export const getTemplates = async (req, res, next) => {
   try {
@@ -248,15 +240,14 @@ export const getTemplates = async (req, res, next) => {
     if (channel) {
       for (let c of channel) {
         if (!allowedChannels.includes(c)) {
-          // return next(CreateError(400, `Invalid channel: ${c}`));
-          return res.status(400).json({`Invalid channel: ${c}`})
+          return next(CreateError(400, `Invalid channel: ${c}`));
         }
       }
     }
 
     // Call service
     const result = await messageService.getTemplates({ templateCode, channel, language_id, limit, offset });
-    return res.json({ success: true, count: result.total, data: result.templates });
+    return res.status(200).json({ success: true, count: result.total, data: result.templates });
 
   } catch (err) {
     return next(CreateError(500, 'Internal Server Error'));
@@ -269,6 +260,6 @@ API for get templates with filters:
 
 export const healthCheck = async (req, res,) => {
   const [rows] = await db.query("SELECT * FROM td_messages_queue");
-  console.log(rows);
+  console.table(rows);
   return res.json({ success: true, message: "API is healthy", data: rows });
 }

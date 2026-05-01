@@ -15,10 +15,8 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
 
     // Extract template variables
     const matches = template.body.match(/{{(.*?)}}/g) || [];
-
     const requiredVars = [...new Set(matches.map(v => v.replace(/[{}]/g, '').trim()))];
     const insertedQueueIds = [];
-
     // Process each message
     for (const item of messages) {
       const [prospects] = await connection.query(
@@ -31,7 +29,6 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
           phone
         FROM td_prospects
         WHERE id = ?
-        AND isActive = TRUE
         `,
         [item.prospect_id]
       );
@@ -86,9 +83,9 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
           template_id,
           to_address,
           payload,
+          created_by,
           status,
-          created_by
-        ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?)
+        ) VALUES (?, ?, ?, ?, ?, ?,'PENDING')
         `,
         [
           prospect.id,
@@ -128,7 +125,6 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
 export const enqueueMessage = async ({template_id,prospect_id,payload = {},userId}) => {
   let connection;
   try {
-
     connection = await db.getConnection();
     await connection.beginTransaction();
 
@@ -144,7 +140,6 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
         p.phone
       FROM md_message_templates t INNER JOIN td_prospects p ON p.id = ?
       WHERE t.id = ?
-      AND p.isActive = TRUE
       `,[prospect_id, template_id]);
 
     if (rows.length === 0) {
@@ -237,17 +232,6 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
     }
   }
 };
-/* 
-{
-  "template_id": 2,
-  "prospect_id": 101,
-  "userId": 10,
-  "payload": {
-    "meeting_date": "2026-05-02",
-    "meeting_link": "https://meet.google.com/abc"
-  }
-}
-*/
 
 export const queue = async ({status,channel,prospect_id,limit,offset}) => {
   let baseQuery = `FROM td_messages_queue WHERE 1=1`;
@@ -368,14 +352,6 @@ export const updateTemplates = async (id, data) => {
     throw error;
   }
 }
-/* 
-API for update template:
-id is passed as path params( id ->> Primary key of template table)
-{
-  "subject": "Updated Order Confirmation",
-  "body": "Hello {{name}}, your order {{order_id}} confirmed."
-}
-  */
 
 export const getTemplates = async ({ templateCode, channel, language_id, limit, offset }) => {
   try{

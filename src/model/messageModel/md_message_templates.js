@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS md_message_templates (
   template_code VARCHAR(100) NOT NULL,
   language_id VARCHAR(10) NOT NULL,
   channel ENUM('EMAIL', 'SMS', 'WHATSAPP') NOT NULL,
-  subject VARCHAR(500),
+  subject VARCHAR(500) NOT NULL,
   body TEXT NOT NULL,
   variables JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

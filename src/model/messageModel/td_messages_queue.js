@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS td_messages_queue (
   attempt_number INT DEFAULT 0,
   max_attempt_number INT DEFAULT 3,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_by BIGINT,
+  created_by BIGINT NOT NULL,
   CONSTRAINT fk_template
     FOREIGN KEY (template_id)
     REFERENCES md_message_templates(id)
