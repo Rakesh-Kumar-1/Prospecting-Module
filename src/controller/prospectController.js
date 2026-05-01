@@ -1,5 +1,6 @@
 import * as prospectService from '../service/prospectService.js';
 import db from '../config/db.js';
+import { CreateError } from '../middleware/createError.js';
 
 export const uploadProspects = async (req, res) => {
     try {
@@ -106,3 +107,4 @@ export const getProspectHistory = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+

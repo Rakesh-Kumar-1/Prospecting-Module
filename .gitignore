@@ -9,5 +9,3 @@ node_modules
 
 # Logs
 *.log
-setup_db.js
-src/config
