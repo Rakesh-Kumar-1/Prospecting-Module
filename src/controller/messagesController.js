@@ -4,7 +4,7 @@ import { CreateError } from '../middleware/createError.js';
 
 export const sendBulk = async (req, res, next) => {
   try {
-    const {template_id,userId,messages} = req.body;
+    const { template_id, userId, messages } = req.body;
     if (!template_id || !userId) {
       return next(CreateError(400, 'Missing required fields'));
     }
@@ -17,15 +17,15 @@ export const sendBulk = async (req, res, next) => {
     // Validate each message item
     for (const item of messages) {
       if (!item.prospect_id) {
-        return next(CreateError(400,'prospect_id is required for each message'));
+        return next(CreateError(400, 'prospect_id is required for each message'));
       }
 
       if (item.payload && typeof item.payload !== 'object') {
-        return next(CreateError(400,'payload must be JSON object'));
+        return next(CreateError(400, 'payload must be JSON object'));
       }
     }
 
-    const result = await messageService.enqueueBulkMessages({template_id,userId,messages});
+    const result = await messageService.enqueueBulkMessages({ template_id, userId, messages });
     return res.status(201).json({
       success: true,
       message: 'Bulk messages queued successfully',
@@ -249,7 +249,7 @@ export const getTemplates = async (req, res, next) => {
       for (let c of channel) {
         if (!allowedChannels.includes(c)) {
           // return next(CreateError(400, `Invalid channel: ${c}`));
-          return res.status(400).json({`Invalid channel: ${c}`})
+          return res.status(400).json({ error: `Invalid channel: ${c}` });
         }
       }
     }
