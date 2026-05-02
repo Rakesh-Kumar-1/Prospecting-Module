@@ -9,3 +9,6 @@ node_modules
 
 # Logs
 *.log
+
+~$prospects_bulk_import_template.xlsx
+prospects_bulk_import_template.xlsx

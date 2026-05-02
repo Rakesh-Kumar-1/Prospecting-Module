@@ -1,7 +1,7 @@
 import pool from "../../config/db.js";
 
 const createTableQuery = `
-CREATE TABLE IF NOT EXISTS message_logs (
+CREATE TABLE IF NOT EXISTS td_messages_logs (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   queue_id BIGINT NOT NULL,
   channel ENUM('EMAIL', 'SMS', 'WHATSAPP') NOT NULL,

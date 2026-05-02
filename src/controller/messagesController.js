@@ -181,8 +181,11 @@ export const getTemplates = async (req, res, next) => {
   }
 }
 
-// export const healthCheck = async (req, res,) => {
-//   const [rows] = await db.query("SELECT * FROM md_prospects");
-//   console.table(rows);
-//   return res.json({ success: true, message: "API is healthy", data: rows });
-// }
+export const healthCheck = async (req, res, next) => {
+  try {
+    await db.query("SELECT 1");
+    return res.json({ success: true, message: "API is healthy" });
+  } catch (err) {
+    return next(err);
+  }
+}

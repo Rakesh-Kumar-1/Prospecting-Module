@@ -7,7 +7,7 @@ import { createTable as messageLog } from "./td_messges_log.js";
 
 export async function createMessageTables() {
   await messageTemplates();
-  await messageIndexes();
   await messageQueue();
   await messageLog();
+  await messageIndexes();
 }
