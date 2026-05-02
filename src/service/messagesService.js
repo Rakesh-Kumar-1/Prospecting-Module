@@ -1,26 +1,30 @@
 import db from '../config/db.js';
 import { CreateError } from '../middleware/createError.js';
 
-export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
+export const enqueueBulkMessages = async ({ template_id, userId, messages }) => {
   let connection;
   try {
     connection = await db.getConnection();
     await connection.beginTransaction();
-    const [templates] = await connection.query(`SELECT *FROM md_message_templates WHERE id = ?`,[template_id]);
+    const [templates] = await connection.query(`SELECT *FROM md_message_templates WHERE id = ?`, [template_id]);
     if (templates.length === 0) {
-      throw CreateError(404,'Template not found');
+      throw CreateError(404, 'Template not found');
     }
 
     const template = templates[0];
 
-    // Extract template variables
-    const matches = template.body.match(/{{(.*?)}}/g) || [];
-    const requiredVars = [...new Set(matches.map(v => v.replace(/[{}]/g, '').trim()))];
+    let requiredVars = [];
+    if (Array.isArray(template.variables)) {
+      requiredVars = template.variables;
+    } else {
+      requiredVars = JSON.parse(template.variables || '[]');
+    }
+
     const insertedQueueIds = [];
     // Process each message
     for (const item of messages) {
       const [prospects] = await connection.query(
-      `
+        `
         SELECT
           id,
           contact_name,
@@ -34,44 +38,40 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
       );
 
       if (prospects.length === 0) {
-        throw CreateError(404,`Prospect not found: ${item.prospect_id}`);
+        throw CreateError(404, `Prospect not found: ${item.prospect_id}`);
       }
 
       const prospect = prospects[0];
 
       // Prospect data
       const prospectData = {
-        name: prospect.contact_name,
         company_name: prospect.company_name,
+        contact_name: prospect.contact_name,
         email: prospect.email,
         phone: prospect.phone
       };
 
-      // Merge payload
-      const finalPayload = {...prospectData,...(item.payload || {})};
+      const customVars = requiredVars.filter(
+        variable => !(variable in prospectData)
+      );
 
-      // Validate template variables
-      for (const variable of requiredVars) {
-        if (!(variable in finalPayload)) {
-          throw CreateError(400,`Missing variable: ${variable} for prospect ${item.prospect_id}`);
+      for (const variable of customVars) {
+        if (
+          item.payload?.[variable] === undefined ||
+          item.payload?.[variable] === null ||
+          item.payload?.[variable] === ''
+        ) {
+          throw CreateError(400, `Missing payload variable: ${variable} for prospect ${item.prospect_id}`);
         }
       }
+      // Merge payload
+      const finalPayload = { ...prospectData, ...(item.payload || {}) };
 
       // Determine recipient
-      let toAddress = null;
-      if (template.channel === 'EMAIL') {
-        toAddress = prospect.email;
-      }
-
-      if (
-        template.channel === 'SMS' ||
-        template.channel === 'WHATSAPP'
-      ) {
-        toAddress = prospect.phone;
-      }
+      let toAddress = data.channel === 'EMAIL' ? data.email : data.phone;
 
       if (!toAddress) {
-        throw CreateError(400,`Recipient not found for prospect ${item.prospect_id}`);
+        throw CreateError(400, `Recipient not found for prospect ${item.prospect_id}`);
       }
 
       // Insert queue record
@@ -84,7 +84,7 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
           to_address,
           payload,
           created_by,
-          status,
+          status
         ) VALUES (?, ?, ?, ?, ?, ?,'PENDING')
         `,
         [
@@ -122,7 +122,8 @@ export const enqueueBulkMessages = async ({template_id,userId,messages}) => {
   }
 };
 
-export const enqueueMessage = async ({template_id,prospect_id,payload = {},userId}) => {
+export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, userId }) => {
+  console.log(template_id, prospect_id, payload, userId);
   let connection;
   try {
     connection = await db.getConnection();
@@ -133,6 +134,7 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
         t.id AS template_id,
         t.channel,
         t.body,
+        t.variables,
         p.id AS prospect_id,
         p.contact_name,
         p.company_name,
@@ -140,54 +142,53 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
         p.phone
       FROM md_message_templates t INNER JOIN md_prospects p ON p.id = ?
       WHERE t.id = ?
-      `,[prospect_id, template_id]);
+      `, [prospect_id, template_id]);
 
     if (rows.length === 0) {
-      throw CreateError(404,'Template or Prospect not found');
+      throw CreateError(404, 'Template or Prospect not found');
     }
 
     const data = rows[0];
 
-    // Extract variables from template
-    const matches = data.body.match(/{{(.*?)}}/g) || [];
+    let requiredVars = [];
 
-    const requiredVars = [...new Set(matches.map(v => v.replace(/[{}]/g, '').trim()))];
+    if (Array.isArray(data.variables)) {
+      requiredVars = data.variables;
+    } else {
+      requiredVars = JSON.parse(data.variables || '[]');
+    }
 
     // Prospect based variables
     const prospectData = {
-      name: data.contact_name,
+      contact_name: data.contact_name,
       company_name: data.company_name,
       email: data.email,
       phone: data.phone
     };
+    const customVars = requiredVars.filter(
+      variable => !(variable in prospectData)
+    );
 
-    // Merge prospect data + dynamic payload
-    const finalPayload = {...prospectData,...payload};
+    /*
+      Validate payload variables only
+    */
+    for (const variable of customVars) {
 
-    // Validate template variables
-    for (let variable of requiredVars) {
-
-      if (!(variable in finalPayload)) {
-        throw CreateError(400,`Missing variable: ${variable}`);
+      if (
+        payload[variable] === undefined ||
+        payload[variable] === null ||
+        payload[variable] === ''
+      ) {
+        throw CreateError(400, `Missing payload variable: ${variable}`);
       }
     }
+    // Merge prospect data + dynamic payload
+    const finalPayload = { ...prospectData, ...payload };
 
     // Determine recipient automatically
-    let toAddress = null;
-
-    if (data.channel === 'EMAIL') {
-      toAddress = data.email;
-    }
-
-    if (
-      data.channel === 'SMS' ||
-      data.channel === 'WHATSAPP'
-    ) {
-      toAddress = data.phone;
-    }
-
+    let toAddress = data.channel === 'EMAIL' ? data.email : data.phone;
     if (!toAddress) {
-      throw CreateError(400,'Recipient address not found');
+      throw CreateError(400, 'Recipient address not found');
     }
 
     // Insert message into queue
@@ -198,9 +199,9 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
         template_id,
         to_address,
         payload,
-        created_by,
+        userId,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, 'PENDING')
+      ) VALUES (?, ?, ?, ?, ?,?, 'PENDING')
       `,
       [
         data.prospect_id,
@@ -233,7 +234,7 @@ export const enqueueMessage = async ({template_id,prospect_id,payload = {},userI
   }
 };
 
-export const queue = async ({channel, prospect_id, limit, offset}) => {
+export const queue = async ({ channel, prospect_id, limit, offset }) => {
   let baseQuery = `FROM td_messages_queue WHERE 1=1`;
   let values = [];
 
@@ -244,7 +245,7 @@ export const queue = async ({channel, prospect_id, limit, offset}) => {
   }
 
   // prospect_id filter
-  if (prospect_id && prospect_id.length > 0 ) {
+  if (prospect_id && prospect_id.length > 0) {
     baseQuery += ` AND prospect_id IN (${prospect_id.map(() => '?').join(',')})`;
     values.push(...prospect_id);
   }
@@ -272,7 +273,7 @@ export const queue = async ({channel, prospect_id, limit, offset}) => {
   `;
 
   const [rows] = await db.query(dataQuery, [...values, limit, offset]);
-  return {rows,total: countResult.total};
+  return { rows, total: countResult.total };
 };
 
 export const postTemplates = async ({ templateCode, channel, language_id, subject, body }) => {
@@ -307,7 +308,7 @@ export const postTemplates = async ({ templateCode, channel, language_id, subjec
   }
 };
 
-export const updateTemplates = async ({id, data}) => {
+export const updateTemplates = async ({ id, data }) => {
   try {
     const { subject, body } = data;
     const [rows] = await db.query("SELECT id FROM md_message_templates WHERE id = ?", [id]);
@@ -348,37 +349,38 @@ export const updateTemplates = async ({id, data}) => {
 }
 
 export const getTemplates = async ({ templateCode, channel, language_id, limit, offset }) => {
-  try{
+  try {
     let baseQuery = `FROM md_message_templates WHERE 1=1`;
-  let values = [];
+    let values = [];
 
-  if (templateCode) {
-    baseQuery += ` AND template_code = ?`;
-    values.push(templateCode);
+    if (templateCode) {
+      baseQuery += ` AND template_code = ?`;
+      values.push(templateCode);
+    }
+
+    if (channel && channel.length > 0) {
+      baseQuery += ` AND channel IN (${channel.map(() => '?').join(',')})`;
+      values.push(...channel);
+    }
+
+    if (language_id) {
+      baseQuery += ` AND language_id = ?`;
+      values.push(language_id);
+    }
+
+    // Total count query
+    const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+    const [[countResult]] = await db.query(countQuery, values);
+
+    // Data query with pagination
+    const dataQuery = `SELECT * ${baseQuery}ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+    const [rows] = await db.query(dataQuery, [...values, limit, offset]);
+    return {
+      total: countResult.total,
+      templates: rows
+    }
   }
-
-  if (channel && channel.length > 0) {
-    baseQuery += ` AND channel IN (${channel.map(() => '?').join(',')})`;
-    values.push(...channel);
-  }
-
-  if (language_id) {
-    baseQuery += ` AND language_id = ?`;
-    values.push(language_id);
-  }
-
-  // Total count query
-  const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
-  const [[countResult]] = await db.query(countQuery, values);
-
-  // Data query with pagination
-  const dataQuery = `SELECT * ${baseQuery}ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-  const [rows] = await db.query(dataQuery, [...values, limit, offset]);
-  return {
-    total: countResult.total,
-    templates: rows}
-  }
-  catch(err){
+  catch (err) {
     throw err;
   }
 };

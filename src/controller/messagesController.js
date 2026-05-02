@@ -5,7 +5,8 @@ import { CreateError } from '../middleware/createError.js';
 export const sendBulk = async (req, res, next) => {
   try {
     const {template_id,messages} = req.body;
-    const userId = req.authentication['userid']; 
+    //const userId = req.authentication['userid'];
+    const userId = 105; 
     if (!template_id || !userId) {
       return next(CreateError(400, 'Missing required fields'));
     }
@@ -21,7 +22,9 @@ export const sendBulk = async (req, res, next) => {
         return next(CreateError(400, 'prospect_id is required for each message'));
       }
 
-      if (item.payload && typeof item.payload !== 'object') {
+      if (item.payload !== undefined && (
+          typeof item.payload !== 'object' ||
+          Array.isArray(item.payload))) {
         return next(CreateError(400, 'payload must be JSON object'));
       }
     }
@@ -37,40 +40,18 @@ export const sendBulk = async (req, res, next) => {
     return next(error);
   }
 };
-/* 
-{
-  "template_id": 2,
-  "messages": [
-    {
-      "prospect_id": 101,
-      "payload": {
-        "meeting_date": "2026-05-02",
-        "meeting_link": "https://meet.google.com/a1"
-      }
-    },
-    {
-      "prospect_id": 102,
-      "payload": {
-        "meeting_date": "2026-05-03",
-        "meeting_link": "https://meet.google.com/b2"
-      }
-    }
-  ]
-}
-*/
 
 export const sendSingle = async (req, res, next) => {
   try {
-    const { template_id, prospect_id, payload } = req.body;
-    const userId = req.authentication['userid'];     // ----> Authentication part
-
+    const { template_id, prospect_id, payload={} } = req.body;
+    const userId = req.authentication['userid'] || Number(105);  // ----> Authentication part
     if (!template_id || !prospect_id || !userId) {
       return next(CreateError(400, 'Missing required fields'))
     }
 
     // Payload Optional validation
-    if (payload && typeof payload !== "object") {
-      return next(CreateError(400, 'Payload must be a valid JSON object'))
+    if (typeof payload !== "object" || Array.isArray(payload)) {
+      return next(CreateError(400, 'Payload must be a valid JSON object'));
     }
 
     // Call service
@@ -81,16 +62,6 @@ export const sendSingle = async (req, res, next) => {
     return next(err);
   }
 };
-/* 
-{
-  "template_id": 2,
-  "prospect_id": 101,
-  "payload": {
-    "meeting_date": "2026-05-02",
-    "meeting_link": "https://meet.google.com/abc"
-  }
-}
-*/
 
 export const queue = async (req, res, next) => {
   try {
@@ -140,9 +111,6 @@ export const queue = async (req, res, next) => {
     return next(err);
   }
 }
-/*
-/queue?channel=EMAIL&channel=SMS&prospect_id=123&page=2&limit=10
-*/
 
 export const postTemplates = async (req, res, next) => {
   try {
@@ -160,17 +128,6 @@ export const postTemplates = async (req, res, next) => {
     next(CreateError(500, 'Internal Server Error'));
   }
 }
-/*
- API Schemas for create templates:
- {
-  "templateCode": "FOLLOW UP",
-  "channel": "EMAIL",
-  "language_id": "en",
-  "subject": "Order Confirmation",
-  "body": "Hello {{name}}, your order {{order_id}} is confirmed.",
-  "isActive": true
-}
-*/
 
 export const updateTemplates = async (req, res, next) => {
   try {
@@ -189,14 +146,6 @@ export const updateTemplates = async (req, res, next) => {
     next(CreateError(500, 'Internal Server Error'));
   }
 }
-/* 
-API for update template:
-id is passed as path params( id ->> Primary key of template table)
-{
-  "subject": "Updated Order Confirmation",
-  "body": "Hello {{name}}, your order {{order_id}} confirmed."
-}
-  */
 
 export const getTemplates = async (req, res, next) => {
   try {
@@ -231,15 +180,9 @@ export const getTemplates = async (req, res, next) => {
     return next(CreateError(500, 'Internal Server Error'));
   }
 }
-/*
-API for get templates with filters:
-/templates?templateCode=FOLLOW%20UP&channel=EMAIL&channel=SMS&channel=WHATSAPP&language_id=EN&page=2&limit=10
-/templates?templateCode=FOLLOW%20UP&channel=EMAIL,SMS,WHATSAPP&language_id=EN&page=2&limit=10
 
-*/
-
-export const healthCheck = async (req, res,) => {
-  const [rows] = await db.query("SELECT * FROM td_messages_queue");
-  console.table(rows);
-  return res.json({ success: true, message: "API is healthy", data: rows });
-}
+// export const healthCheck = async (req, res,) => {
+//   const [rows] = await db.query("SELECT * FROM md_prospects");
+//   console.table(rows);
+//   return res.json({ success: true, message: "API is healthy", data: rows });
+// }

@@ -11,7 +11,6 @@ router.post('/templates', controller.postTemplates); // Create template
 router.put('/templates/:id', controller.updateTemplates); // Update template
 router.get('/templates', controller.getTemplates); // List templates
 router.get('/health', controller.healthCheck);
-
-
-
 export default router;
+
+

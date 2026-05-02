@@ -1,8 +1,8 @@
 import db from "../../config/db.js";
 
 const createTableQuery = `
-CREATE TABLE IF NOT EXISTS mt_prospects (  
-    id                BIGINT PRIMARY KEY AUTO_INCREMENT,  
+CREATE TABLE IF NOT EXISTS md_prospects ( 
+    id                BIGINT PRIMARY KEY AUTO_INCREMENT,
     company_name      VARCHAR(255),  
     contact_name      VARCHAR(255),  
     job_title         VARCHAR(255),  
