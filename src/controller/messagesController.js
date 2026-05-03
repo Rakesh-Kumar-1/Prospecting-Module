@@ -178,7 +178,7 @@ export const getTemplates = async (req, res, next) => {
 
 export const healthCheck = async (req, res,next) => {
   try{
-    const [rows] = await db.query("SELECT * FROM md_message_templates");
+    const [rows] = await db.query("SELECT * FROM td_messages_queue");
     return res.json({ success: true, message: "API is healthy", data: rows });
   }catch(err){
     next(err);

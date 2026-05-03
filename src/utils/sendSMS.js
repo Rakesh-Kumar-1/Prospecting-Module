@@ -11,3 +11,5 @@ export const sendSMS = async ({ body, to_address }) => {
    throw err;
  }
 };
+
+sendSMS({body:""})
