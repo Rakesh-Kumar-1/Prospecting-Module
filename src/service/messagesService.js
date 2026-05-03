@@ -13,18 +13,17 @@ export const enqueueBulkMessages = async ({ template_id, userId, messages }) => 
 
     const template = templates[0];
 
-    let requiredVars = [];
+    let requiredVariables  = [];
     if (Array.isArray(template.variables)) {
-      requiredVars = template.variables;
+      requiredVariables  = template.variables;
     } else {
-      requiredVars = JSON.parse(template.variables || '[]');
+      requiredVariables  = JSON.parse(template.variables || '[]');
     }
 
     const insertedQueueIds = [];
     // Process each message
     for (const item of messages) {
-      const [prospects] = await connection.query(
-        `
+      const [prospects] = await connection.query(`
         SELECT
           id,
           contact_name,
@@ -33,9 +32,7 @@ export const enqueueBulkMessages = async ({ template_id, userId, messages }) => 
           phone
         FROM md_prospects
         WHERE id = ?
-        `,
-        [item.prospect_id]
-      );
+      `, [item.prospect_id]);
 
       if (prospects.length === 0) {
         throw CreateError(404, `Prospect not found: ${item.prospect_id}`);
@@ -51,11 +48,11 @@ export const enqueueBulkMessages = async ({ template_id, userId, messages }) => 
         phone: prospect.phone
       };
 
-      const customVars = requiredVars.filter(
+      const customVariables = requiredVars.filter(
         variable => !(variable in prospectData)
       );
 
-      for (const variable of customVars) {
+      for (const variable of customVariables) {
         if (
           item.payload?.[variable] === undefined ||
           item.payload?.[variable] === null ||
@@ -66,7 +63,13 @@ export const enqueueBulkMessages = async ({ template_id, userId, messages }) => 
       }
       // Merge payload
       const finalPayload = { ...prospectData, ...(item.payload || {}) };
-
+      let finalSubject = template.subject;
+      let finalBody = template.body;
+      for (const variable of requiredVariables) {
+        const regex = new RegExp(`{{${variable}}}`,'g');
+        finalSubject = finalSubject.replace(regex,finalPayload[variable]);
+        finalBody = finalBody.replace(regex,finalPayload[variable]);
+      }
       // Determine recipient
       let toAddress = data.channel === 'EMAIL' ? data.email : data.phone;
 
@@ -75,38 +78,30 @@ export const enqueueBulkMessages = async ({ template_id, userId, messages }) => 
       }
 
       // Insert queue record
-      const [result] = await connection.query(
-        `
+      const [result] = await connection.query(`
         INSERT INTO td_messages_queue (
-          prospect_id,
           channel,
-          template_id,
           to_address,
-          payload,
-          created_by,
+          subject,
+          body,
           status
-        ) VALUES (?, ?, ?, ?, ?, ?,'PENDING')
-        `,
-        [
-          prospect.id,
-          template.channel,
-          template.id,
-          toAddress,
-          JSON.stringify(finalPayload),
-          userId
-        ]
-      );
-
+        )
+        VALUES (?, ?, ?, ?, 'PENDING')
+      `, [
+        template.channel,
+        toAddress,
+        finalSubject,
+        finalBody
+      ]);
       insertedQueueIds.push(result.insertId);
     }
-
-    // Commit transaction
     await connection.commit();
 
     return {
       total_messages: insertedQueueIds.length,
       queue_ids: insertedQueueIds,
-      status: 'PENDING'
+      status: 'PENDING',
+      message: 'Bulk messages queued successfully'
     };
 
   } catch (error) {
@@ -133,6 +128,7 @@ export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, u
     const [rows] = await connection.query(`SELECT
         t.id AS template_id,
         t.channel,
+        t.subject,
         t.body,
         t.variables,
         p.id AS prospect_id,
@@ -150,12 +146,12 @@ export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, u
 
     const data = rows[0];
 
-    let requiredVars = [];
+    let requiredVariables  = [];
 
     if (Array.isArray(data.variables)) {
-      requiredVars = data.variables;
+      requiredVariables  = data.variables;
     } else {
-      requiredVars = JSON.parse(data.variables || '[]');
+      requiredVariables  = JSON.parse(data.variables || '[]');
     }
 
     // Prospect based variables
@@ -165,15 +161,11 @@ export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, u
       email: data.email,
       phone: data.phone
     };
-    const customVars = requiredVars.filter(
+    const customVariables  = requiredVariables.filter(
       variable => !(variable in prospectData)
     );
 
-    /*
-      Validate payload variables only
-    */
-    for (const variable of customVars) {
-
+    for (const variable of customVariables) {
       if (
         payload[variable] === undefined ||
         payload[variable] === null ||
@@ -184,7 +176,16 @@ export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, u
     }
     // Merge prospect data + dynamic payload
     const finalPayload = { ...prospectData, ...payload };
-
+    let finalSubject = data.subject;
+    let finalBody = data.body;
+    for (const variable of requiredVariables) {
+      const regex = new RegExp(
+        `{{${variable}}}`,
+        'g'
+      );
+      finalSubject = finalSubject.replace(regex,finalPayload[variable]);
+      finalBody = finalBody.replace(regex,finalPayload[variable]);
+    }
     // Determine recipient automatically
     let toAddress = data.channel === 'EMAIL' ? data.email : data.phone;
     if (!toAddress) {
@@ -194,24 +195,19 @@ export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, u
     // Insert message into queue
     const [result] = await connection.query(`
       INSERT INTO td_messages_queue (
-        prospect_id,
         channel,
-        template_id,
         to_address,
-        payload,
-        userId,
+        subject,
+        body,
         status
-      ) VALUES (?, ?, ?, ?, ?,?, 'PENDING')
-      `,
-      [
-        data.prospect_id,
-        data.channel,
-        data.template_id,
-        toAddress,
-        JSON.stringify(finalPayload),
-        userId
-      ]
-    );
+      )
+      VALUES (?, ?, ?, ?, 'PENDING')
+    `, [
+      data.channel,
+      toAddress,
+      finalSubject,
+      finalBody
+    ]);
 
     await connection.commit();
 

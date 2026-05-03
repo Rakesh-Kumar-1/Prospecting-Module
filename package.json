@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
+    "worker": "nodemon src/worker/worker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,12 +13,16 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "cron": "^4.4.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "multer": "^2.1.1",
     "mysql2": "^3.22.3",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.7",
     "nodemon": "^3.1.14",
     "pq": "^0.0.3",
+    "twilio": "^6.0.0",
     "xlsx": "^0.18.5"
   }
 }

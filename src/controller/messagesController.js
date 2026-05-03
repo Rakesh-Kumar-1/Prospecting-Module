@@ -155,7 +155,6 @@ export const getTemplates = async (req, res, next) => {
     const offset = (page - 1) * limit;
 
     // Handle multiple channels
-
     if (channel) {
       if (typeof channel === "string") {
         channel = channel.split(",");
@@ -181,8 +180,8 @@ export const getTemplates = async (req, res, next) => {
   }
 }
 
-// export const healthCheck = async (req, res,) => {
-//   const [rows] = await db.query("SELECT * FROM md_prospects");
-//   console.table(rows);
-//   return res.json({ success: true, message: "API is healthy", data: rows });
-// }
+export const healthCheck = async (req, res,) => {
+  const [rows] = await db.query("SELECT * FROM md_message_templates");
+  console.table(rows);
+  return res.json({ success: true, message: "API is healthy", data: rows });
+}
