@@ -104,12 +104,11 @@ export const enqueueBulkMessages = async ({ template_id, userId, messages }) => 
       message: 'Bulk messages queued successfully'
     };
 
-  } catch (error) {
-
+  } catch (err) {
     if (connection) {
       await connection.rollback();
     }
-    throw error;
+    throw err;
   } finally {
     if (connection) {
       connection.release();
@@ -217,12 +216,12 @@ export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, u
       message: 'Message queued successfully'
     };
 
-  } catch (error) {
+  } catch (err) {
 
     if (connection) {
       await connection.rollback();
     }
-    throw error;
+    throw err;
   } finally {
     if (connection) {
       connection.release();
@@ -231,45 +230,50 @@ export const enqueueMessage = async ({ template_id, prospect_id, payload = {}, u
 };
 
 export const queue = async ({ channel, prospect_id, limit, offset }) => {
-  let baseQuery = `FROM td_messages_queue WHERE 1=1`;
-  let values = [];
+  try{
+    let baseQuery = `FROM td_messages_queue WHERE 1=1`;
+    let values = [];
 
-  // Channel filter
-  if (channel && channel.length > 0) {
-    baseQuery += ` AND channel IN (${channel.map(() => '?').join(',')})`;
-    values.push(...channel);
+    // Channel filter
+    if (channel && channel.length > 0) {
+      baseQuery += ` AND channel IN (${channel.map(() => '?').join(',')})`;
+      values.push(...channel);
+    }
+
+    // prospect_id filter
+    if (prospect_id && prospect_id.length > 0) {
+      baseQuery += ` AND prospect_id IN (${prospect_id.map(() => '?').join(',')})`;
+      values.push(...prospect_id);
+    }
+
+    // Count query
+    const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+    const [[countResult]] = await db.query(countQuery, values);
+
+    // Data query
+    const dataQuery = `
+      SELECT 
+        id,
+        channel,
+        prospect_id,
+        template_id,
+        to_address,
+        status,
+        retry_count,
+        scheduled_at,
+        sent_at,
+        created_at
+      ${baseQuery}
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const [rows] = await db.query(dataQuery, [...values, limit, offset]);
+    return { rows, total: countResult.total };
   }
-
-  // prospect_id filter
-  if (prospect_id && prospect_id.length > 0) {
-    baseQuery += ` AND prospect_id IN (${prospect_id.map(() => '?').join(',')})`;
-    values.push(...prospect_id);
+  catch(err){
+    throw err;
   }
-
-  // Count query
-  const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
-  const [[countResult]] = await db.query(countQuery, values);
-
-  // Data query
-  const dataQuery = `
-    SELECT 
-      id,
-      channel,
-      prospect_id,
-      template_id,
-      to_address,
-      status,
-      retry_count,
-      scheduled_at,
-      sent_at,
-      created_at
-    ${baseQuery}
-    ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `;
-
-  const [rows] = await db.query(dataQuery, [...values, limit, offset]);
-  return { rows, total: countResult.total };
 };
 
 export const postTemplates = async ({ templateCode, channel, language_id, subject, body }) => {
@@ -339,8 +343,8 @@ export const updateTemplates = async ({ id, data }) => {
     await db.query(query, values);
 
     return { success: true, message: "Template updated successfully", };
-  } catch (error) {
-    throw error;
+  } catch (err) {
+    throw err;
   }
 }
 

@@ -36,8 +36,8 @@ export const sendBulk = async (req, res, next) => {
       data: result
     });
 
-  } catch (error) {
-    return next(error);
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -59,7 +59,7 @@ export const sendSingle = async (req, res, next) => {
     return res.status(201).json({ success: true, message: "Message queued successfully", data: result });
 
   } catch (err) {
-    return next(err);
+    next(err);
   }
 };
 
@@ -108,7 +108,7 @@ export const queue = async (req, res, next) => {
     });
 
   } catch (err) {
-    return next(err);
+    next(err);
   }
 }
 
@@ -124,8 +124,8 @@ export const postTemplates = async (req, res, next) => {
     }
     return res.status(201).json({ success: true, message: 'Template created successfully' });
   }
-  catch (error) {
-    next(CreateError(500, 'Internal Server Error'));
+  catch (err) {
+    next(err);
   }
 }
 
@@ -142,8 +142,8 @@ export const updateTemplates = async (req, res, next) => {
     }
     return res.status(200).json({ success: true, message: "Template updated successfully" });
   }
-  catch (error) {
-    next(CreateError(500, 'Internal Server Error'));
+  catch (err) {
+    next(err);
   }
 }
 
@@ -160,8 +160,6 @@ export const getTemplates = async (req, res, next) => {
         channel = channel.split(",");
       }
     }
-
-    // Validation
     const allowedChannels = ['EMAIL', 'SMS', 'WHATSAPP'];
     if (channel) {
       for (let c of channel) {
@@ -170,18 +168,20 @@ export const getTemplates = async (req, res, next) => {
         }
       }
     }
-
-    // Call service
     const result = await messageService.getTemplates({ templateCode, channel, language_id, limit, offset });
     return res.status(200).json({ success: true, count: result.total, data: result.templates });
 
   } catch (err) {
-    return next(CreateError(500, 'Internal Server Error'));
+    next(err);
   }
 }
 
-export const healthCheck = async (req, res,) => {
-  const [rows] = await db.query("SELECT * FROM md_message_templates");
-  console.table(rows);
-  return res.json({ success: true, message: "API is healthy", data: rows });
+export const healthCheck = async (req, res,next) => {
+  try{
+    const [rows] = await db.query("SELECT * FROM md_message_templates");
+    return res.json({ success: true, message: "API is healthy", data: rows });
+  }catch(err){
+    next(err);
+  }
 }
+

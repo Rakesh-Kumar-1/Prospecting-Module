@@ -14,7 +14,7 @@ export const uploadProspects = async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error("Upload error:", err);
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 };
 
@@ -39,7 +39,7 @@ export const listProspects = async (req, res) => {
         const [rows] = await db.query(query, params);
         res.json({ prospects: normalizeOutputData(rows, prospectMapping) });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 };
 
@@ -50,7 +50,7 @@ export const getProspect = async (req, res) => {
         if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
         res.json(normalizeOutputData(rows, prospectMapping)[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 };
 
@@ -74,7 +74,7 @@ export const updateProspect = async (req, res) => {
         await db.query(query, params);
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 };
 
@@ -86,7 +86,7 @@ export const moveStage = async (req, res) => {
         const result = await prospectService.moveStage({ prospectId, newStage, reasonId, userId }, db);
         res.json(result);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 };
 
@@ -98,7 +98,7 @@ export const transferProspects = async (req, res) => {
         const result = await prospectService.transferProspects({ prospectIds, toUserId, fromUserId, adminId }, db);
         res.json(result);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 };
 
@@ -109,7 +109,7 @@ export const getProspectHistory = async (req, res) => {
         const [transferLogs] = await db.query('SELECT * FROM td_transfer_logs WHERE prospect_id = ? ORDER BY transferred_at DESC', [id]);
         res.json({ stageLogs, transferLogs });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        next(err);
     }
 };
 

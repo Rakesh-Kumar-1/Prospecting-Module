@@ -10,5 +10,3 @@ cron.schedule('0 */15 * * * *', async () => {
     console.log('Reset Stuck Jobs Cron Triggered');
     await engineService.resetStuckJobs();
 });
-
-console.log('Queue Worker Started...');

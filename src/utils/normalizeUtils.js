@@ -5,6 +5,8 @@ export const normalizeInputData = (dataList, mapping) => {
             const [dbKey, frontendKey, dataType] = mapping[i];
             if (data[frontendKey] !== undefined) {
                 normalized[dbKey] = castType(data[frontendKey], dataType);
+            } else if (data[dbKey] !== undefined) {
+                normalized[dbKey] = castType(data[dbKey], dataType);
             }
         }
         return normalized;
