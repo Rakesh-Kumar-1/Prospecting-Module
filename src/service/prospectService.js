@@ -1,13 +1,12 @@
 export const bulkInsertProspects = async (prospects, userId, langId = 'EN', db) => {
   const [firstStageRows] = await db.query(
-    'SELECT stage_code FROM stage_master WHERE language_id = ? AND sequence = 1 LIMIT 1',
-    [langId]
+    'SELECT stage_code FROM md_stages WHERE sort_order = 1 AND is_active = 1 LIMIT 1'
   );
   let stageCode = 1;
   if (firstStageRows.length > 0) {
     stageCode = firstStageRows[0].stage_code;
   } else {
-    const [anyFirst] = await db.query('SELECT stage_code FROM stage_master WHERE sequence = 1 LIMIT 1');
+    const [anyFirst] = await db.query('SELECT stage_code FROM md_stages WHERE is_active = 1 ORDER BY sort_order ASC LIMIT 1');
     if (anyFirst.length > 0) stageCode = anyFirst[0].stage_code;
   }
 
@@ -59,12 +58,10 @@ export const moveStage = async ({ prospectId, newStage, reasonId, userId }, db) 
     const currentStage = rows[0].stage_code;
 
     const [stageMeta] = await connection.query(
-      'SELECT requires_reason FROM stage_master WHERE stage_code=? AND language_id=? LIMIT 1',
-      [newStage, 'EN']
+      'SELECT stage_code FROM md_stages WHERE stage_code=? AND is_active = 1 LIMIT 1',
+      [newStage]
     );
-    if (stageMeta.length > 0 && stageMeta[0].requires_reason && !reasonId) {
-      throw new Error('REASON_REQUIRED');
-    }
+    if (stageMeta.length === 0) throw new Error('STAGE_NOT_FOUND');
 
     await connection.query(
       'UPDATE md_prospects SET stage_code=?, reason_id=?, updated_at=NOW(), updated_by=? WHERE id=?',

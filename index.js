@@ -4,13 +4,13 @@ import prospectRoutes from './src/routes/prospectRoutes.js';
 import masterRoutes from './src/routes/master.routes.js';
 import dotenv from 'dotenv';
 import errorHandler from "./src/middleware/errorHandler.js";
-//import { createAllTable } from './src/utils/allDbInstance.js';    ---> Uncomment it when you want all table structures into your respective SQL Database.
+import { createAllTable } from './src/utils/allDbInstance.js';   // ---> Uncomment it when you want all table structures into your respective SQL Database.
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 
-//createAllTable();                 ----> This function will create all tables from models directly into each system 
+createAllTable();               //  ----> This function will create all tables from models directly into each system 
 app.use('/messages', messagesRoutes);
 app.use('/prospects', prospectRoutes);
 app.use('/masters', masterRoutes);
